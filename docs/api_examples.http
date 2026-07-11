@@ -1,0 +1,64 @@
+### Create client
+POST http://127.0.0.1:8000/client
+Content-Type: application/json
+
+{
+  "client_id": "C-100",
+  "client_name": "Retail Client",
+  "client_type": "RETAIL",
+  "country": "IN"
+}
+
+### Create product
+POST http://127.0.0.1:8000/product
+Content-Type: application/json
+
+{
+  "product_id": "P-EQ",
+  "product_code": "EQUITY",
+  "product_name": "Cash Equity",
+  "asset_class": "EQUITY"
+}
+
+### Create brokerage rule
+POST http://127.0.0.1:8000/rules
+Content-Type: application/json
+
+{
+  "product_code": "EQUITY",
+  "client_type": "RETAIL",
+  "exchange": "NSE",
+  "country": "IN",
+  "currency": "INR",
+  "trade_side": "ANY",
+  "brokerage_type": "PERCENTAGE",
+  "brokerage_value": "0.25",
+  "effective_date": "2026-01-01",
+  "priority": 100
+}
+
+### Create trade
+POST http://127.0.0.1:8000/trade
+Content-Type: application/json
+
+{
+  "trade_id": "T-100",
+  "client_id": "C-100",
+  "product_id": "P-EQ",
+  "quantity": "100",
+  "price": "250.00",
+  "currency": "INR",
+  "exchange": "NSE",
+  "trade_side": "BUY",
+  "trade_date": "2026-07-11"
+}
+
+### Calculate brokerage
+POST http://127.0.0.1:8000/calculate
+Content-Type: application/json
+
+{
+  "trade_id": "T-100",
+  "calculated_by": "api-user"
+}
+

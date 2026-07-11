@@ -1,0 +1,10 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      EBCMS_DATABASE_URL: "sqlite:////app/data/ebcms.db"
+    volumes:
+      - ./data:/app/data
+
