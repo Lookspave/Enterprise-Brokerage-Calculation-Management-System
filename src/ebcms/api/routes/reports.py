@@ -5,8 +5,10 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from ebcms.api.dependencies import require_roles
+from ebcms.core.enums import UserRole
 from ebcms.database import get_db
-from ebcms.models import BrokerageResult, Product, Trade
+from ebcms.models import BrokerageResult, Product, Trade, User
 
 router = APIRouter(tags=["reports"])
 
@@ -16,6 +18,15 @@ def get_reports(
     date_from: date | None = None,
     date_to: date | None = None,
     db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(
+            UserRole.ADMIN.value,
+            UserRole.BROKERAGE_MANAGER.value,
+            UserRole.FINANCE.value,
+            UserRole.RISK.value,
+            UserRole.COMPLIANCE.value,
+        )
+    ),
 ) -> dict[str, object]:
     base = select(BrokerageResult).join(Trade)
     if date_from:
@@ -81,4 +92,3 @@ def get_reports(
 
 def _money(value: Decimal | int | float | str) -> str:
     return f"{Decimal(str(value)):.2f}"
-

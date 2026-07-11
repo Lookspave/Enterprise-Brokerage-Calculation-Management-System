@@ -1,26 +1,64 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import json
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
+from ebcms.api.dependencies import require_roles
 from ebcms.config import get_settings
-from ebcms.core.enums import TradeStatus
+from ebcms.core.enums import TradeStatus, UserRole
 from ebcms.database import get_db
-from ebcms.models import AuditLog, BrokerageResult, BrokerageRule, Client, Product, Trade
-from ebcms.schemas import BrokerageRead, CalculationRequest, TradeCreate, TradeRead
-from ebcms.services.brokerage_engine import (
-    BrokerageEngine,
-    CalculationRule,
-    CalculationTrade,
-    NoApplicableRuleError,
-    TaxProfile,
+from ebcms.models import AuditLog, BrokerageResult, Client, Product, Trade, TradeImportReject, User
+from ebcms.schemas import (
+    BatchCalculationFailureRead,
+    BatchCalculationRequest,
+    BatchCalculationSummary,
+    BrokerageRead,
+    CalculationRequest,
+    TradeCreate,
+    TradeImportRejectionRead,
+    TradeImportSummary,
+    TradeRead,
+)
+from ebcms.services.calculation import (
+    CalculationError,
+    calculate_trade_brokerage,
+    calculate_validated_trades,
+    select_validated_trades_for_batch,
 )
 from ebcms.services.validation import validate_trade_record
+from ebcms.services.trade_import import TradeImportError, import_trade_file
 
 router = APIRouter(tags=["trades and calculations"])
 
+TRADE_READ_ROLES = {
+    UserRole.ADMIN.value,
+    UserRole.OPERATIONS.value,
+    UserRole.BROKERAGE_MANAGER.value,
+    UserRole.FINANCE.value,
+    UserRole.RISK.value,
+    UserRole.COMPLIANCE.value,
+    UserRole.RELATIONSHIP_MANAGER.value,
+}
+
+TRADE_WRITE_ROLES = {
+    UserRole.ADMIN.value,
+    UserRole.OPERATIONS.value,
+}
+
+CALCULATION_ROLES = {
+    UserRole.ADMIN.value,
+    UserRole.OPERATIONS.value,
+    UserRole.BROKERAGE_MANAGER.value,
+}
+
 
 @router.post("/trade", response_model=TradeRead, status_code=status.HTTP_201_CREATED)
-def create_trade(payload: TradeCreate, db: Session = Depends(get_db)) -> Trade:
+def create_trade(
+    payload: TradeCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(*TRADE_WRITE_ROLES)),
+) -> Trade:
     if db.get(Trade, payload.trade_id):
         raise HTTPException(status_code=409, detail="Duplicate trade ID.")
 
@@ -41,7 +79,7 @@ def create_trade(payload: TradeCreate, db: Session = Depends(get_db)) -> Trade:
     )
 
     trade = Trade(
-        **payload.model_dump(exclude={"trade_side"}),
+        **payload.model_dump(exclude={"trade_side", "currency", "exchange"}),
         trade_side=str(payload.trade_side).upper(),
         currency=payload.currency.upper(),
         exchange=payload.exchange.upper(),
@@ -55,6 +93,7 @@ def create_trade(payload: TradeCreate, db: Session = Depends(get_db)) -> Trade:
             entity_id=trade.trade_id,
             action="CREATE",
             new_value=f"status={trade.status}",
+            user_id=current_user.username,
             change_reason=trade.rejection_reason,
         )
     )
@@ -64,77 +103,134 @@ def create_trade(payload: TradeCreate, db: Session = Depends(get_db)) -> Trade:
 
 
 @router.get("/trade/{trade_id}", response_model=TradeRead)
-def get_trade(trade_id: str, db: Session = Depends(get_db)) -> Trade:
+def get_trade(
+    trade_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(*TRADE_READ_ROLES)),
+) -> Trade:
     trade = db.get(Trade, trade_id)
     if not trade:
         raise HTTPException(status_code=404, detail="Trade not found.")
     return trade
 
 
+@router.post("/trades/import", response_model=TradeImportSummary, status_code=status.HTTP_201_CREATED)
+async def import_trades(
+    file: UploadFile = File(...),
+    imported_by: str | None = Form(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(*TRADE_WRITE_ROLES)),
+) -> TradeImportSummary:
+    filename = file.filename or "uploaded-trades"
+    try:
+        content = await file.read()
+        return import_trade_file(
+            filename=filename,
+            content=content,
+            imported_by=imported_by or current_user.username,
+            db=db,
+        )
+    except UnicodeDecodeError as exc:
+        raise HTTPException(status_code=400, detail="CSV file must be UTF-8 encoded.") from exc
+    except TradeImportError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/trades/imports/{import_id}/rejections", response_model=list[TradeImportRejectionRead])
+def get_trade_import_rejections(
+    import_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN.value, UserRole.OPERATIONS.value)),
+) -> list[TradeImportRejectionRead]:
+    rejections = list(
+        db.scalars(
+            select(TradeImportReject)
+            .where(TradeImportReject.import_id == import_id)
+            .order_by(TradeImportReject.row_number, TradeImportReject.rejection_id)
+        )
+    )
+    return [
+        TradeImportRejectionRead(
+            rejection_id=rejection.rejection_id,
+            import_id=rejection.import_id,
+            row_number=rejection.row_number,
+            trade_id=rejection.trade_id,
+            reason=rejection.reason,
+            raw_payload=json.loads(rejection.raw_payload),
+            created_at=rejection.created_at,
+        )
+        for rejection in rejections
+    ]
+
+
 @router.post("/calculate", response_model=BrokerageRead)
-def calculate_trade(payload: CalculationRequest, db: Session = Depends(get_db)) -> BrokerageResult:
+def calculate_trade(
+    payload: CalculationRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(*CALCULATION_ROLES)),
+) -> BrokerageResult:
     trade = db.get(Trade, payload.trade_id)
     if not trade:
         raise HTTPException(status_code=404, detail="Trade not found.")
-    if trade.status == TradeStatus.REJECTED.value:
-        raise HTTPException(status_code=422, detail=f"Rejected trade cannot be calculated: {trade.rejection_reason}")
-
-    client = db.get(Client, trade.client_id)
-    product = db.get(Product, trade.product_id)
-    if not client or not product:
-        raise HTTPException(status_code=422, detail="Trade reference data is incomplete.")
-
-    rules = list(db.scalars(select(BrokerageRule).where(BrokerageRule.is_active.is_(True))))
-    engine = BrokerageEngine(_tax_profile_from_settings())
-    calculation_trade = CalculationTrade(
-        trade_id=trade.trade_id,
-        product_code=product.product_code,
-        client_type=client.client_type,
-        exchange=trade.exchange,
-        country=client.country,
-        currency=trade.currency,
-        trade_side=trade.trade_side,
-        quantity=trade.quantity,
-        price=trade.price,
-        trade_date=trade.trade_date,
-    )
 
     try:
-        rule = engine.find_applicable_rule(calculation_trade, [_to_calculation_rule(rule) for rule in rules])
-    except NoApplicableRuleError as exc:
+        return calculate_trade_brokerage(trade=trade, calculated_by=payload.calculated_by, db=db)
+    except CalculationError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    breakdown = engine.calculate(calculation_trade, rule)
-    result = BrokerageResult(
-        trade_id=breakdown.trade_id,
-        rule_id=breakdown.rule_id,
-        trade_value=breakdown.trade_value,
-        brokerage=breakdown.brokerage,
-        gst=breakdown.gst,
-        stt=breakdown.stt,
-        exchange_txn_charge=breakdown.exchange_txn_charge,
-        sebi_charge=breakdown.sebi_charge,
-        total_charges=breakdown.total_charges,
-        calculated_by=payload.calculated_by,
-    )
-    trade.status = TradeStatus.CALCULATED.value
-    db.add(result)
-    db.add(
-        AuditLog(
-            entity_type="BROKERAGE_RESULT",
-            entity_id=trade.trade_id,
-            action="CALCULATE",
-            new_value=f"rule_id={breakdown.rule_id}; total_charges={breakdown.total_charges}",
-            user_id=payload.calculated_by,
+
+
+@router.post("/calculations/batch", response_model=BatchCalculationSummary)
+def calculate_batch(
+    payload: BatchCalculationRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(*CALCULATION_ROLES)),
+) -> BatchCalculationSummary:
+    if payload.date_from and payload.date_to and payload.date_from > payload.date_to:
+        raise HTTPException(status_code=400, detail="date_from cannot be after date_to.")
+    if (
+        payload.import_id is None
+        and payload.date_from is None
+        and payload.date_to is None
+        and not payload.calculate_all_validated
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Provide import_id, a date range, or calculate_all_validated=true.",
         )
+
+    trades = select_validated_trades_for_batch(
+        db=db,
+        import_id=payload.import_id,
+        date_from=payload.date_from,
+        date_to=payload.date_to,
+        calculate_all_validated=payload.calculate_all_validated,
     )
-    db.commit()
-    db.refresh(result)
-    return result
+    result = calculate_validated_trades(
+        trades=trades,
+        calculated_by=payload.calculated_by,
+        db=db,
+    )
+    return BatchCalculationSummary(
+        total_trades=result.total_trades,
+        calculated_count=len(result.calculated_trade_ids),
+        failed_count=len(result.failures),
+        total_brokerage=result.total_brokerage,
+        total_charges=result.total_charges,
+        calculated_trade_ids=result.calculated_trade_ids,
+        failures=[
+            BatchCalculationFailureRead(trade_id=failure.trade_id, reason=failure.reason)
+            for failure in result.failures
+        ],
+    )
 
 
 @router.get("/brokerage/{trade_id}", response_model=BrokerageRead)
-def get_latest_brokerage(trade_id: str, db: Session = Depends(get_db)) -> BrokerageResult:
+def get_latest_brokerage(
+    trade_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(*TRADE_READ_ROLES)),
+) -> BrokerageResult:
     result = db.scalar(
         select(BrokerageResult)
         .where(BrokerageResult.trade_id == trade_id)
@@ -143,31 +239,3 @@ def get_latest_brokerage(trade_id: str, db: Session = Depends(get_db)) -> Broker
     if not result:
         raise HTTPException(status_code=404, detail="Brokerage result not found.")
     return result
-
-
-def _tax_profile_from_settings() -> TaxProfile:
-    settings = get_settings()
-    return TaxProfile(
-        gst_rate=settings.default_gst_rate,
-        stt_rate=settings.default_stt_rate,
-        exchange_txn_rate=settings.default_exchange_txn_rate,
-        sebi_rate=settings.default_sebi_rate,
-    )
-
-
-def _to_calculation_rule(rule: BrokerageRule) -> CalculationRule:
-    return CalculationRule(
-        rule_id=rule.rule_id,
-        product_code=rule.product_code,
-        client_type=rule.client_type,
-        exchange=rule.exchange,
-        country=rule.country,
-        currency=rule.currency,
-        trade_side=rule.trade_side,
-        brokerage_type=rule.brokerage_type,
-        brokerage_value=rule.brokerage_value,
-        effective_date=rule.effective_date,
-        expiry_date=rule.expiry_date,
-        priority=rule.priority,
-    )
-

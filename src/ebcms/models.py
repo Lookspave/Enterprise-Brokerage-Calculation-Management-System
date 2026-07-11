@@ -42,6 +42,18 @@ class Product(Base, TimestampMixin):
     trades: Mapped[list["Trade"]] = relationship(back_populates="product")
 
 
+class User(Base, TimestampMixin):
+    __tablename__ = "user_master"
+
+    user_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    username: Mapped[str] = mapped_column(String(80), nullable=False, unique=True, index=True)
+    email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    full_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    role: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+
 class Trade(Base, TimestampMixin):
     __tablename__ = "trade_master"
 
@@ -54,12 +66,52 @@ class Trade(Base, TimestampMixin):
     exchange: Mapped[str] = mapped_column(String(30), nullable=False, index=True)
     trade_side: Mapped[str] = mapped_column(String(10), nullable=False)
     trade_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    import_id: Mapped[int | None] = mapped_column(
+        ForeignKey("trade_import_batch.import_id"),
+        nullable=True,
+        index=True,
+    )
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="PENDING")
     rejection_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     client: Mapped[Client] = relationship(back_populates="trades")
     product: Mapped[Product] = relationship(back_populates="trades")
     brokerage_results: Mapped[list["BrokerageResult"]] = relationship(back_populates="trade")
+    import_batch: Mapped["TradeImportBatch | None"] = relationship(back_populates="trades")
+
+
+class TradeImportBatch(Base):
+    __tablename__ = "trade_import_batch"
+
+    import_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    source_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="PROCESSING")
+    total_rows: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    accepted_rows: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    rejected_rows: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    imported_by: Mapped[str] = mapped_column(String(120), nullable=False, default="api")
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), index=True)
+
+    rejections: Mapped[list["TradeImportReject"]] = relationship(
+        back_populates="import_batch",
+        cascade="all, delete-orphan",
+    )
+    trades: Mapped[list[Trade]] = relationship(back_populates="import_batch")
+
+
+class TradeImportReject(Base):
+    __tablename__ = "trade_import_reject"
+
+    rejection_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    import_id: Mapped[int] = mapped_column(ForeignKey("trade_import_batch.import_id"), index=True)
+    row_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    trade_id: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    raw_payload: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), index=True)
+
+    import_batch: Mapped[TradeImportBatch] = relationship(back_populates="rejections")
 
 
 class BrokerageRule(Base, TimestampMixin):
@@ -114,4 +166,3 @@ class AuditLog(Base):
     user_id: Mapped[str] = mapped_column(String(120), nullable=False, default="system")
     change_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), index=True)
-

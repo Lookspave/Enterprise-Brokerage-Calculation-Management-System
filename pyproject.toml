@@ -4,13 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "enterprise-brokerage-calculation-management-system"
-version = "0.1.0"
+version = "0.3.0"
 description = "Enterprise brokerage calculation and management platform scaffold."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115",
     "oracledb>=2.3",
+    "openpyxl>=3.1",
     "pydantic>=2.7",
     "pydantic-settings>=2.3",
     "python-multipart>=0.0.9",
@@ -41,4 +42,3 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-

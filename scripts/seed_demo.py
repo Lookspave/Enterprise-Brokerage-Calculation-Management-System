@@ -1,14 +1,38 @@
 from datetime import date
 from decimal import Decimal
 
-from ebcms.core.enums import BrokerageType, TradeSide, TradeStatus
+from ebcms.core.enums import BrokerageType, TradeSide, TradeStatus, UserRole
 from ebcms.database import SessionLocal, init_db
-from ebcms.models import BrokerageRule, Client, Product, Trade
+from ebcms.models import BrokerageRule, Client, Product, Trade, User
+from ebcms.services.auth import hash_password
 
 
 def main() -> None:
     init_db()
     with SessionLocal() as db:
+        demo_users = [
+            ("ops", "ops@example.com", "Operations User", UserRole.OPERATIONS.value, "ops12345"),
+            (
+                "brokerage",
+                "brokerage@example.com",
+                "Brokerage Manager",
+                UserRole.BROKERAGE_MANAGER.value,
+                "brokerage123",
+            ),
+            ("finance", "finance@example.com", "Finance User", UserRole.FINANCE.value, "finance123"),
+        ]
+        for username, email, full_name, role, password in demo_users:
+            if not db.query(User).filter_by(username=username).first():
+                db.add(
+                    User(
+                        username=username,
+                        email=email,
+                        full_name=full_name,
+                        role=role,
+                        password_hash=hash_password(password),
+                    )
+                )
+
         if not db.get(Client, "C-DEMO-001"):
             db.add(
                 Client(
@@ -63,9 +87,11 @@ def main() -> None:
 
         db.commit()
 
-    print("Demo data seeded. Try POST /calculate with trade_id T-DEMO-001.")
+    print("Demo data seeded.")
+    print("Default login: admin / admin123")
+    print("Demo users: ops / ops12345, brokerage / brokerage123, finance / finance123")
+    print("Try POST /calculate with trade_id T-DEMO-001 using a bearer token.")
 
 
 if __name__ == "__main__":
     main()
-

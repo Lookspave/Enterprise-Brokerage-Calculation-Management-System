@@ -1,5 +1,16 @@
+### Login
+POST http://127.0.0.1:8000/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+username=admin&password=admin123
+
+### Current user
+GET http://127.0.0.1:8000/auth/me
+Authorization: Bearer {{token}}
+
 ### Create client
 POST http://127.0.0.1:8000/client
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -11,6 +22,7 @@ Content-Type: application/json
 
 ### Create product
 POST http://127.0.0.1:8000/product
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -22,6 +34,7 @@ Content-Type: application/json
 
 ### Create brokerage rule
 POST http://127.0.0.1:8000/rules
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -39,6 +52,7 @@ Content-Type: application/json
 
 ### Create trade
 POST http://127.0.0.1:8000/trade
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -55,6 +69,7 @@ Content-Type: application/json
 
 ### Calculate brokerage
 POST http://127.0.0.1:8000/calculate
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -62,3 +77,29 @@ Content-Type: application/json
   "calculated_by": "api-user"
 }
 
+### Batch calculate validated trades from an import
+POST http://127.0.0.1:8000/calculations/batch
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "import_id": 1,
+  "calculated_by": "batch-user"
+}
+
+### Import trades from CSV
+POST http://127.0.0.1:8000/trades/import
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="imported_by"
+
+api-user
+--boundary
+Content-Disposition: form-data; name="file"; filename="trades.csv"
+Content-Type: text/csv
+
+trade_id,client_id,product_id,quantity,price,currency,exchange,trade_side,trade_date
+T-101,C-100,P-EQ,100,250.00,INR,NSE,BUY,2026-07-11
+--boundary--

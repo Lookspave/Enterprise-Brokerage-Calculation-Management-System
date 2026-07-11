@@ -20,6 +20,10 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, expi
 
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)
+    from ebcms.services.auth import ensure_bootstrap_admin
+
+    with SessionLocal() as db:
+        ensure_bootstrap_admin(db)
 
 
 def get_db() -> Generator[Session, None, None]:
@@ -28,4 +32,3 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
-
