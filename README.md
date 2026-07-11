@@ -22,6 +22,7 @@ A production-oriented portfolio scaffold for brokerage calculation, rule managem
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev]"
+python scripts/migrate_db.py
 python scripts/seed_demo.py
 uvicorn ebcms.main:app --reload
 ```
@@ -196,7 +197,41 @@ oracle+oracledb://user:password@host:1521/?service_name=FREEPDB1
 
 The production-oriented DDL lives in `sql/oracle_schema.sql`.
 
+## Database Migrations
+
+Alembic migrations live in `migrations/`.
+
+Run migrations against the configured database:
+
+```powershell
+python scripts/migrate_db.py
+```
+
+Or call Alembic directly:
+
+```powershell
+alembic upgrade head
+alembic current
+alembic history
+```
+
+For existing local databases that were created before migrations, either recreate the local SQLite database or stamp the current schema after confirming it matches:
+
+```powershell
+alembic stamp head
+```
+
+The app still calls `create_all()` on startup as a local development fallback, but migrations are the production path for schema changes.
+
 ## Tests
+
+Run the full local check suite:
+
+```powershell
+python scripts/check.py
+```
+
+That command runs syntax compilation, Ruff linting, and the full unittest suite, including the Alembic migration smoke test.
 
 ```powershell
 python -m unittest discover
@@ -205,5 +240,5 @@ python -m unittest discover
 For a broader project check:
 
 ```powershell
-python -m compileall src tests scripts etl dags
+python -m compileall src tests scripts etl dags migrations
 ```

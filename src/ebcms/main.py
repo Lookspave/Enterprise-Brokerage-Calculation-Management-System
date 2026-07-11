@@ -8,7 +8,7 @@ settings = get_settings()
 
 app = FastAPI(
     title=settings.app_name,
-    version="0.4.0",
+    version="0.6.0",
     description="Authenticated brokerage calculation, trade ingestion, rule management, audit, and reporting APIs.",
 )
 

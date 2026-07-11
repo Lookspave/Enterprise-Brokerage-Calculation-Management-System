@@ -4,11 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "enterprise-brokerage-calculation-management-system"
-version = "0.4.0"
+version = "0.6.0"
 description = "Enterprise brokerage calculation and management platform scaffold."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "alembic>=1.13",
     "fastapi>=0.115",
     "oracledb>=2.3",
     "openpyxl>=3.1",
