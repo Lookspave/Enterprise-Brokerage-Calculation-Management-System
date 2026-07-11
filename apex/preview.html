@@ -1,0 +1,1045 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EBCMS APEX Interactive Preview</title>
+  <style>
+    :root {
+      --bg: #f5f7fa;
+      --panel: #ffffff;
+      --panel-soft: #edf2f6;
+      --text: #17202a;
+      --muted: #657181;
+      --line: #d8dee6;
+      --accent: #255f85;
+      --accent-2: #3b8f7b;
+      --warn: #9b6200;
+      --danger: #9f3f3f;
+      --ok: #2f7548;
+      --nav: #263543;
+      --nav-active: #33495d;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 14px;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 238px minmax(0, 1fr);
+    }
+
+    .sidebar {
+      background: var(--nav);
+      color: #eef4f8;
+      padding: 16px 14px;
+    }
+
+    .brand {
+      font-weight: 700;
+      letter-spacing: .02em;
+      margin-bottom: 18px;
+    }
+
+    .nav {
+      display: grid;
+      gap: 4px;
+    }
+
+    .nav button {
+      width: 100%;
+      min-height: 38px;
+      border: 0;
+      border-radius: 4px;
+      background: transparent;
+      color: #dbe6ef;
+      cursor: pointer;
+      padding: 9px 11px;
+      text-align: left;
+    }
+
+    .nav button:hover,
+    .nav button.active {
+      background: var(--nav-active);
+      color: #ffffff;
+    }
+
+    .main {
+      min-width: 0;
+    }
+
+    .topbar {
+      min-height: 58px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 10px 22px;
+    }
+
+    .title {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .subtle {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .content {
+      padding: 20px 22px 32px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 14px;
+      min-width: 0;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .panel-title {
+      font-weight: 700;
+    }
+
+    .filters,
+    .kpis,
+    .grid,
+    .wide-grid,
+    .two-col,
+    .split {
+      display: grid;
+      gap: 14px;
+    }
+
+    .filters {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      align-items: end;
+    }
+
+    .kpis {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+
+    .grid {
+      grid-template-columns: 1.35fr 1fr;
+    }
+
+    .wide-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .two-col {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .split {
+      grid-template-columns: minmax(0, 1.6fr) minmax(280px, .8fr);
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    input,
+    select {
+      min-height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 6px 8px;
+      background: #ffffff;
+      color: var(--text);
+    }
+
+    .btn {
+      min-height: 34px;
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      background: var(--accent);
+      color: #ffffff;
+      padding: 7px 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn.secondary {
+      background: var(--panel);
+      color: var(--accent);
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .kpi {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 12px;
+      min-width: 0;
+    }
+
+    .kpi-label {
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 8px;
+      white-space: nowrap;
+    }
+
+    .kpi-value {
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .kpi-note {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .bars {
+      display: grid;
+      gap: 10px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 120px minmax(0, 1fr) 92px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .bar-track {
+      height: 12px;
+      background: var(--panel-soft);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .bar {
+      height: 100%;
+      background: var(--accent);
+    }
+
+    .bar.secondary {
+      background: var(--accent-2);
+    }
+
+    .bar.warn {
+      background: var(--warn);
+    }
+
+    .chart {
+      width: 100%;
+      min-height: 218px;
+    }
+
+    .axis {
+      stroke: var(--line);
+      stroke-width: 1;
+    }
+
+    .series {
+      fill: none;
+      stroke: var(--accent);
+      stroke-width: 3;
+    }
+
+    .point {
+      fill: var(--accent);
+      stroke: var(--panel);
+      stroke-width: 2;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--line);
+      padding: 9px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    tbody tr {
+      cursor: pointer;
+    }
+
+    tbody tr:hover,
+    tbody tr.selected {
+      background: var(--panel-soft);
+    }
+
+    .status {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      background: var(--panel-soft);
+    }
+
+    .status.ok {
+      color: var(--ok);
+    }
+
+    .status.warn {
+      color: var(--warn);
+    }
+
+    .status.danger {
+      color: var(--danger);
+    }
+
+    .detail-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .detail-row {
+      display: grid;
+      grid-template-columns: 120px minmax(0, 1fr);
+      gap: 10px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 8px;
+    }
+
+    .detail-row span:first-child {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .empty {
+      color: var(--muted);
+      padding: 16px 0;
+    }
+
+    .locked {
+      border-left: 4px solid var(--warn);
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 1100px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+      }
+
+      .nav {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .nav button {
+        text-align: center;
+      }
+
+      .kpis,
+      .wide-grid,
+      .grid,
+      .split,
+      .two-col,
+      .filters {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .nav,
+      .kpis,
+      .wide-grid,
+      .grid,
+      .split,
+      .two-col,
+      .filters {
+        grid-template-columns: 1fr;
+      }
+
+      .bar-row {
+        grid-template-columns: 86px minmax(0, 1fr) 72px;
+      }
+
+      .detail-row {
+        grid-template-columns: 1fr;
+      }
+
+      table {
+        font-size: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">EBCMS APEX</div>
+      <nav class="nav" aria-label="Application navigation" id="nav"></nav>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <div class="title" id="page-title">Operations Dashboard</div>
+          <div class="subtle" id="page-subtitle">Interactive APEX-style local preview</div>
+        </div>
+        <div class="top-actions">
+          <label>
+            Preview Role
+            <select id="role-select">
+              <option>ADMIN</option>
+              <option>OPERATIONS</option>
+              <option>BROKERAGE_MANAGER</option>
+              <option>FINANCE</option>
+              <option>RISK</option>
+              <option>COMPLIANCE</option>
+              <option>RELATIONSHIP_MANAGER</option>
+            </select>
+          </label>
+        </div>
+      </header>
+
+      <section class="content" id="content"></section>
+    </main>
+  </div>
+
+  <script>
+    const previewData = {
+      pages: [
+        ["dashboard", "Dashboard", ["ADMIN", "OPERATIONS", "BROKERAGE_MANAGER", "FINANCE", "RISK", "COMPLIANCE"]],
+        ["trades", "Trade Search", ["ADMIN", "OPERATIONS", "BROKERAGE_MANAGER", "FINANCE", "RISK", "COMPLIANCE", "RELATIONSHIP_MANAGER"]],
+        ["imports", "Imports", ["ADMIN", "OPERATIONS", "BROKERAGE_MANAGER", "FINANCE", "RISK", "COMPLIANCE"]],
+        ["rules", "Rules", ["ADMIN", "BROKERAGE_MANAGER", "FINANCE", "COMPLIANCE"]],
+        ["revenue", "Revenue", ["ADMIN", "BROKERAGE_MANAGER", "FINANCE", "RISK", "COMPLIANCE"]],
+        ["rejections", "Rejections", ["ADMIN", "OPERATIONS", "RISK", "COMPLIANCE"]],
+        ["audit", "Audit Trail", ["ADMIN", "RISK", "COMPLIANCE"]],
+        ["admin", "Admin", ["ADMIN"]]
+      ],
+      trades: [
+        { id: "T-SMOKE-001", client: "C-SMOKE-001", clientName: "Smoke Test Retail Client", product: "EQUITY", exchange: "NSE", side: "BUY", qty: 100, price: 250, date: "2026-07-11", status: "CALCULATED", value: 25000, charges: 80.84, rule: "Retail Equity NSE 0.25%" },
+        { id: "T-SMOKE-IMPORT-001", client: "C-SMOKE-001", clientName: "Smoke Test Retail Client", product: "EQUITY", exchange: "NSE", side: "BUY", qty: 25, price: 100, date: "2026-07-11", status: "CALCULATED", value: 2500, charges: 8.09, rule: "Retail Equity NSE 0.25%" },
+        { id: "T-SMOKE-IMPORT-NORULE", client: "C-SMOKE-001", clientName: "Smoke Test Retail Client", product: "EQUITY", exchange: "BSE", side: "BUY", qty: 10, price: 100, date: "2026-07-11", status: "VALIDATED", value: 1000, charges: 0, rule: "No matching rule" },
+        { id: "T-DEMO-001", client: "C-DEMO-001", clientName: "Demo Retail Client", product: "EQUITY", exchange: "NSE", side: "BUY", qty: 100, price: 250, date: "2026-07-11", status: "VALIDATED", value: 25000, charges: 0, rule: "Awaiting calculation" }
+      ],
+      imports: [
+        { id: 1, file: "trades.csv", source: "CSV", status: "COMPLETED_WITH_REJECTIONS", total: 3, accepted: 2, rejected: 1, importedBy: "smoke-test", createdAt: "2026-07-11 17:45" }
+      ],
+      rejections: [
+        { id: 1, importId: 1, row: 4, trade: "T-SMOKE-IMPORT-002", reason: "Invalid product.", payload: "product_id=P-MISSING; exchange=NSE; quantity=25; price=100.00" }
+      ],
+      rules: [
+        { id: 1, product: "EQUITY", clientType: "RETAIL", exchange: "NSE", country: "IN", currency: "INR", side: "ANY", type: "PERCENTAGE", value: "0.25", effective: "2026-01-01", priority: 100, active: true },
+        { id: 2, product: "OPTIONS", clientType: "RETAIL", exchange: "NSE", country: "IN", currency: "INR", side: "ANY", type: "FLAT", value: "20.00", effective: "2026-01-01", priority: 90, active: true },
+        { id: 3, product: "EQUITY", clientType: "INSTITUTIONAL", exchange: "BSE", country: "IN", currency: "INR", side: "SELL", type: "PERCENTAGE", value: "0.12", effective: "2026-01-01", priority: 80, active: false }
+      ],
+      audit: [
+        { id: 8, entity: "BROKERAGE_RESULT", entityId: "T-SMOKE-IMPORT-001", action: "CALCULATE", user: "batch-smoke", reason: "", createdAt: "2026-07-11 17:49" },
+        { id: 7, entity: "BROKERAGE_RESULT", entityId: "T-SMOKE-001", action: "CALCULATE", user: "smoke-test", reason: "", createdAt: "2026-07-11 17:43" },
+        { id: 6, entity: "TRADE", entityId: "T-SMOKE-IMPORT-001", action: "IMPORT", user: "smoke-test", reason: "", createdAt: "2026-07-11 17:42" },
+        { id: 5, entity: "BROKERAGE_RULE", entityId: "1", action: "CREATE", user: "admin", reason: "Initial retail rule", createdAt: "2026-07-11 17:38" },
+        { id: 4, entity: "TRADE", entityId: "T-SMOKE-001", action: "CREATE", user: "admin", reason: "", createdAt: "2026-07-11 17:36" }
+      ],
+      users: [
+        { username: "admin", role: "ADMIN", name: "Bootstrap Administrator", active: true },
+        { username: "ops", role: "OPERATIONS", name: "Operations User", active: true },
+        { username: "brokerage", role: "BROKERAGE_MANAGER", name: "Brokerage Manager", active: true },
+        { username: "finance", role: "FINANCE", name: "Finance User", active: true }
+      ],
+      trend: [
+        { day: "Mon", charges: 42.3 },
+        { day: "Tue", charges: 51.8 },
+        { day: "Wed", charges: 58.4 },
+        { day: "Thu", charges: 71.2 },
+        { day: "Fri", charges: 66.1 },
+        { day: "Sat", charges: 88.93 }
+      ]
+    };
+
+    const state = {
+      page: "dashboard",
+      role: "ADMIN",
+      selectedTrade: "T-SMOKE-001",
+      selectedImport: 1,
+      selectedRule: 1,
+      selectedRevenue: "product"
+    };
+
+    const content = document.getElementById("content");
+    const nav = document.getElementById("nav");
+    const roleSelect = document.getElementById("role-select");
+
+    function money(value) {
+      return `INR ${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+
+    function statusClass(status) {
+      if (status === "CALCULATED" || status === "ACTIVE") return "ok";
+      if (status === "VALIDATED" || status === "COMPLETED_WITH_REJECTIONS") return "warn";
+      if (status === "REJECTED" || status === "INACTIVE") return "danger";
+      return "";
+    }
+
+    function allowed(pageKey) {
+      const page = previewData.pages.find(item => item[0] === pageKey);
+      return page && page[2].includes(state.role);
+    }
+
+    function renderNav() {
+      nav.innerHTML = previewData.pages.map(([key, label]) => `
+        <button type="button" class="${state.page === key ? "active" : ""}" data-page="${key}">
+          ${label}
+        </button>
+      `).join("");
+      nav.querySelectorAll("button").forEach(button => {
+        button.addEventListener("click", () => {
+          state.page = button.dataset.page;
+          render();
+        });
+      });
+    }
+
+    function render() {
+      renderNav();
+      const page = previewData.pages.find(item => item[0] === state.page);
+      document.getElementById("page-title").textContent = page[1];
+      document.getElementById("page-subtitle").textContent = `${state.role} preview role`;
+      if (!allowed(state.page)) {
+        content.innerHTML = `
+          <section class="panel locked">
+            <div class="panel-title">Access blocked by authorization scheme</div>
+            <p class="subtle">The ${state.role} role cannot access this page in the APEX authorization blueprint.</p>
+          </section>
+        `;
+        return;
+      }
+      const renderers = {
+        dashboard: renderDashboard,
+        trades: renderTrades,
+        imports: renderImports,
+        rules: renderRules,
+        revenue: renderRevenue,
+        rejections: renderRejections,
+        audit: renderAudit,
+        admin: renderAdmin
+      };
+      content.innerHTML = renderers[state.page]();
+      bindPageEvents();
+    }
+
+    function dashboardMetrics() {
+      const trades = previewData.trades;
+      const calculated = trades.filter(trade => trade.status === "CALCULATED");
+      return {
+        total: trades.length,
+        calculated: calculated.length,
+        validated: trades.filter(trade => trade.status === "VALIDATED").length,
+        rejected: trades.filter(trade => trade.status === "REJECTED").length,
+        charges: calculated.reduce((sum, trade) => sum + trade.charges, 0),
+        imports: previewData.imports.length,
+        importRejects: previewData.rejections.length
+      };
+    }
+
+    function renderDashboard() {
+      const metrics = dashboardMetrics();
+      return `
+        <section class="panel filters" aria-label="Dashboard filters">
+          <label>Business Date <input type="date" value="2026-07-11"></label>
+          <label>Exchange <select><option>All exchanges</option><option>NSE</option><option>BSE</option></select></label>
+          <label>Product <select><option>All products</option><option>Equity</option><option>Options</option></select></label>
+          <label>Client Type <select><option>All clients</option><option>Retail</option><option>Institutional</option></select></label>
+          <button class="btn" type="button">Refresh</button>
+        </section>
+        <section class="kpis">
+          ${kpi("Total Trades", metrics.total, `${metrics.validated} still validated`)}
+          ${kpi("Calculated", metrics.calculated, "Ready for reporting")}
+          ${kpi("Rejected", metrics.rejected, "Trade table")}
+          ${kpi("Total Charges", money(metrics.charges), "Brokerage + taxes")}
+          ${kpi("Imports", metrics.imports, "CSV/XLSX batches")}
+          ${kpi("Import Rejects", metrics.importRejects, "Needs remediation")}
+        </section>
+        <section class="grid">
+          <div class="panel">
+            <div class="panel-header"><div class="panel-title">Daily Brokerage Trend</div><span class="subtle">VW_DAILY_BROKERAGE</span></div>
+            ${trendChart()}
+          </div>
+          <div class="panel">
+            <div class="panel-header"><div class="panel-title">Product Revenue</div><span class="subtle">VW_PRODUCT_REVENUE</span></div>
+            ${revenueBars("product")}
+          </div>
+        </section>
+        <section class="wide-grid">
+          ${importStatusPanel()}
+          ${rejectionPanel()}
+          ${auditPanel()}
+        </section>
+      `;
+    }
+
+    function kpi(label, value, note) {
+      return `<div class="kpi"><div class="kpi-label">${label}</div><div class="kpi-value">${value}</div><div class="kpi-note">${note}</div></div>`;
+    }
+
+    function trendChart() {
+      const max = Math.max(...previewData.trend.map(item => item.charges));
+      const points = previewData.trend.map((item, index) => {
+        const x = 42 + index * 104;
+        const y = 188 - (item.charges / max) * 142;
+        return { ...item, x, y };
+      });
+      return `
+        <svg class="chart" viewBox="0 0 640 230" role="img" aria-label="Daily brokerage trend">
+          <line class="axis" x1="42" y1="190" x2="610" y2="190"></line>
+          <line class="axis" x1="42" y1="32" x2="42" y2="190"></line>
+          <polyline class="series" points="${points.map(point => `${point.x},${point.y}`).join(" ")}"></polyline>
+          ${points.map(point => `<circle class="point" cx="${point.x}" cy="${point.y}" r="5"></circle>`).join("")}
+          ${points.map(point => `<text x="${point.x - 12}" y="212" fill="currentColor">${point.day}</text>`).join("")}
+          <text x="520" y="50" fill="currentColor">${money(points[points.length - 1].charges)}</text>
+        </svg>
+      `;
+    }
+
+    function renderTrades() {
+      return `
+        <section class="panel filters">
+          <label>Search <input id="trade-search" type="search" placeholder="Trade, client, product"></label>
+          <label>Status <select id="trade-status"><option>ALL</option><option>CALCULATED</option><option>VALIDATED</option><option>REJECTED</option></select></label>
+          <label>Exchange <select id="trade-exchange"><option>ALL</option><option>NSE</option><option>BSE</option></select></label>
+          <label>Date From <input type="date" value="2026-07-11"></label>
+          <button class="btn" type="button" id="trade-apply">Apply</button>
+        </section>
+        <section class="split">
+          <div class="panel">
+            <div class="panel-header"><div class="panel-title">Trade Interactive Report</div><span class="subtle">Click a row</span></div>
+            <div id="trade-table"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">Trade Detail</div>
+            <div id="trade-detail"></div>
+          </div>
+        </section>
+      `;
+    }
+
+    function renderImports() {
+      const selected = previewData.imports.find(item => item.id === state.selectedImport) || previewData.imports[0];
+      return `
+        <section class="split">
+          <div class="panel">
+            <div class="panel-header"><div class="panel-title">Import Batch Status</div><span class="subtle">VW_IMPORT_BATCH_STATUS</span></div>
+            ${table(["Import", "File", "Status", "Rows", "Rejected"], previewData.imports.map(item => [
+              item.id,
+              item.file,
+              badge(item.status),
+              item.total,
+              item.rejected
+            ]), "import-row", previewData.imports.map(item => item.id))}
+          </div>
+          <div class="panel">
+            <div class="panel-title">Selected Import</div>
+            ${detailRows([
+              ["Import ID", selected.id],
+              ["Filename", selected.file],
+              ["Source", selected.source],
+              ["Status", selected.status],
+              ["Accepted", selected.accepted],
+              ["Rejected", selected.rejected],
+              ["Imported By", selected.importedBy],
+              ["Created", selected.createdAt]
+            ])}
+          </div>
+        </section>
+        <section class="panel">
+          <div class="panel-header"><div class="panel-title">Rejected Rows For Import ${selected.id}</div><span class="subtle">VW_IMPORT_REJECTIONS</span></div>
+          ${rejectionRows(previewData.rejections.filter(item => item.importId === selected.id))}
+        </section>
+      `;
+    }
+
+    function renderRules() {
+      const selected = previewData.rules.find(rule => rule.id === state.selectedRule) || previewData.rules[0];
+      return `
+        <section class="split">
+          <div class="panel">
+            <div class="panel-header"><div class="panel-title">Brokerage Rule Grid</div><span class="subtle">CAN_MANAGE_RULES</span></div>
+            ${table(["Rule", "Product", "Client", "Exchange", "Type", "Value", "Status"], previewData.rules.map(rule => [
+              rule.id,
+              rule.product,
+              rule.clientType,
+              rule.exchange,
+              rule.type,
+              rule.value,
+              badge(rule.active ? "ACTIVE" : "INACTIVE")
+            ]), "rule-row", previewData.rules.map(rule => rule.id))}
+          </div>
+          <div class="panel">
+            <div class="panel-title">Rule Detail</div>
+            ${detailRows([
+              ["Rule ID", selected.id],
+              ["Product", selected.product],
+              ["Client Type", selected.clientType],
+              ["Exchange", selected.exchange],
+              ["Country", selected.country],
+              ["Currency", selected.currency],
+              ["Side", selected.side],
+              ["Type", selected.type],
+              ["Value", selected.value],
+              ["Effective", selected.effective],
+              ["Priority", selected.priority],
+              ["Active", selected.active ? "Yes" : "No"]
+            ])}
+          </div>
+        </section>
+      `;
+    }
+
+    function renderRevenue() {
+      return `
+        <section class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Revenue Analysis</div>
+            <div class="btn-row">
+              ${["daily", "client", "product", "exchange"].map(view => `<button type="button" class="btn secondary revenue-view" data-view="${view}">${view.toUpperCase()}</button>`).join("")}
+            </div>
+          </div>
+          <div class="two-col">
+            <div>${revenueBars(state.selectedRevenue)}</div>
+            <div>${revenueTable(state.selectedRevenue)}</div>
+          </div>
+        </section>
+      `;
+    }
+
+    function renderRejections() {
+      return `
+        <section class="split">
+          <div class="panel">
+            <div class="panel-header"><div class="panel-title">Rejection Workbench</div><span class="subtle">VW_IMPORT_REJECTIONS</span></div>
+            ${rejectionRows(previewData.rejections)}
+          </div>
+          <div class="panel">
+            <div class="panel-title">Remediation Notes</div>
+            ${detailRows([
+              ["Priority", "High"],
+              ["Owner", "Operations"],
+              ["Next Action", "Create missing product or correct source file"],
+              ["Payload", previewData.rejections[0].payload]
+            ])}
+          </div>
+        </section>
+      `;
+    }
+
+    function renderAudit() {
+      return `
+        <section class="panel filters">
+          <label>Entity Type <select id="audit-entity"><option>ALL</option><option>BROKERAGE_RESULT</option><option>BROKERAGE_RULE</option><option>TRADE</option></select></label>
+          <label>User <select id="audit-user"><option>ALL</option><option>admin</option><option>smoke-test</option><option>batch-smoke</option></select></label>
+          <label>Action <select id="audit-action"><option>ALL</option><option>CREATE</option><option>IMPORT</option><option>CALCULATE</option></select></label>
+          <label>From <input type="date" value="2026-07-11"></label>
+          <button class="btn" type="button" id="audit-apply">Apply</button>
+        </section>
+        <section class="panel">
+          <div class="panel-header"><div class="panel-title">Audit Trail</div><span class="subtle">CAN_VIEW_AUDIT</span></div>
+          <div id="audit-table"></div>
+        </section>
+      `;
+    }
+
+    function renderAdmin() {
+      return `
+        <section class="wide-grid">
+          ${kpi("Active Users", previewData.users.filter(user => user.active).length, "USER_MASTER")}
+          ${kpi("Active Rules", previewData.rules.filter(rule => rule.active).length, "BROKERAGE_RULE_MASTER")}
+          ${kpi("Authorization Schemes", 6, "APEX snippets")}
+        </section>
+        <section class="panel">
+          <div class="panel-header"><div class="panel-title">User Role Matrix</div><span class="subtle">Password hashes hidden</span></div>
+          ${table(["Username", "Full Name", "Role", "Status"], previewData.users.map(user => [
+            user.username,
+            user.name,
+            user.role,
+            badge(user.active ? "ACTIVE" : "INACTIVE")
+          ]))}
+        </section>
+      `;
+    }
+
+    function importStatusPanel() {
+      return `
+        <section class="panel">
+          <div class="panel-title">Import Batch Status</div>
+          ${table(["Import", "Status", "Rows", "Rejects"], previewData.imports.map(item => [
+            item.id,
+            badge(item.status),
+            item.total,
+            item.rejected
+          ]))}
+        </section>
+      `;
+    }
+
+    function rejectionPanel() {
+      return `
+        <section class="panel">
+          <div class="panel-title">Rejected Rows</div>
+          ${rejectionRows(previewData.rejections)}
+        </section>
+      `;
+    }
+
+    function auditPanel() {
+      return `
+        <section class="panel">
+          <div class="panel-title">Recent Audit</div>
+          ${auditTable(previewData.audit.slice(0, 3))}
+        </section>
+      `;
+    }
+
+    function revenueRows(view) {
+      if (view === "client") return [{ label: "Smoke Test Retail Client", value: 88.93 }, { label: "Demo Retail Client", value: 0 }];
+      if (view === "exchange") return [{ label: "NSE", value: 88.93 }, { label: "BSE", value: 0 }];
+      if (view === "daily") return previewData.trend.map(item => ({ label: item.day, value: item.charges }));
+      return [{ label: "Equity", value: 88.93 }, { label: "Options", value: 37.4 }, { label: "Futures", value: 22.1 }];
+    }
+
+    function revenueBars(view) {
+      const rows = revenueRows(view);
+      const max = Math.max(...rows.map(row => row.value), 1);
+      return `<div class="bars">${rows.map((row, index) => `
+        <div class="bar-row">
+          <span>${row.label}</span>
+          <div class="bar-track"><div class="bar ${index === 1 ? "secondary" : index > 1 ? "warn" : ""}" style="width: ${(row.value / max) * 100}%"></div></div>
+          <strong>${money(row.value)}</strong>
+        </div>
+      `).join("")}</div>`;
+    }
+
+    function revenueTable(view) {
+      return table(["Group", "Calculated Trades", "Total Charges"], revenueRows(view).map((row, index) => [row.label, index === 0 ? 2 : 1, money(row.value)]));
+    }
+
+    function tradeTable() {
+      const query = document.getElementById("trade-search")?.value.toLowerCase() || "";
+      const status = document.getElementById("trade-status")?.value || "ALL";
+      const exchange = document.getElementById("trade-exchange")?.value || "ALL";
+      const rows = previewData.trades.filter(trade => {
+        const text = `${trade.id} ${trade.clientName} ${trade.product}`.toLowerCase();
+        return (!query || text.includes(query))
+          && (status === "ALL" || trade.status === status)
+          && (exchange === "ALL" || trade.exchange === exchange);
+      });
+      return table(["Trade", "Client", "Product", "Exchange", "Status", "Charges"], rows.map(trade => [
+        trade.id,
+        trade.clientName,
+        trade.product,
+        trade.exchange,
+        badge(trade.status),
+        money(trade.charges)
+      ]), "trade-row", rows.map(trade => trade.id));
+    }
+
+    function tradeDetail() {
+      const trade = previewData.trades.find(item => item.id === state.selectedTrade) || previewData.trades[0];
+      return detailRows([
+        ["Trade ID", trade.id],
+        ["Client", trade.clientName],
+        ["Product", trade.product],
+        ["Exchange", trade.exchange],
+        ["Side", trade.side],
+        ["Quantity", trade.qty],
+        ["Price", money(trade.price)],
+        ["Trade Value", money(trade.value)],
+        ["Status", trade.status],
+        ["Rule", trade.rule],
+        ["Charges", money(trade.charges)]
+      ]);
+    }
+
+    function auditTable(rows) {
+      return table(["Audit", "Entity", "Action", "User", "Created"], rows.map(item => [
+        item.id,
+        `${item.entity} / ${item.entityId}`,
+        badge(item.action),
+        item.user,
+        item.createdAt
+      ]));
+    }
+
+    function rejectionRows(rows) {
+      if (!rows.length) return `<div class="empty">No rejected rows for this selection.</div>`;
+      return table(["Import", "Row", "Trade", "Reason"], rows.map(item => [
+        item.importId,
+        item.row,
+        item.trade,
+        item.reason
+      ]));
+    }
+
+    function table(headers, rows, rowClass = "", rowIds = []) {
+      if (!rows.length) return `<div class="empty">No rows found.</div>`;
+      return `
+        <table>
+          <thead><tr>${headers.map(header => `<th>${header}</th>`).join("")}</tr></thead>
+          <tbody>
+            ${rows.map((row, index) => `<tr class="${rowClass}" data-id="${rowIds[index] || ""}">${row.map(cell => `<td>${cell}</td>`).join("")}</tr>`).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function detailRows(rows) {
+      return `<div class="detail-list">${rows.map(([label, value]) => `<div class="detail-row"><span>${label}</span><span>${value}</span></div>`).join("")}</div>`;
+    }
+
+    function badge(value) {
+      return `<span class="status ${statusClass(value)}">${String(value).replaceAll("_", " ")}</span>`;
+    }
+
+    function bindPageEvents() {
+      if (state.page === "trades") {
+        const refreshTrades = () => {
+          document.getElementById("trade-table").innerHTML = tradeTable();
+          bindTradeRows();
+        };
+        document.getElementById("trade-table").innerHTML = tradeTable();
+        document.getElementById("trade-detail").innerHTML = tradeDetail();
+        ["trade-search", "trade-status", "trade-exchange"].forEach(id => {
+          document.getElementById(id).addEventListener("input", refreshTrades);
+        });
+        document.getElementById("trade-apply").addEventListener("click", refreshTrades);
+        bindTradeRows();
+      }
+      if (state.page === "imports") {
+        document.querySelectorAll(".import-row").forEach(row => {
+          row.addEventListener("click", () => {
+            state.selectedImport = Number(row.dataset.id);
+            render();
+          });
+        });
+      }
+      if (state.page === "rules") {
+        document.querySelectorAll(".rule-row").forEach(row => {
+          row.addEventListener("click", () => {
+            state.selectedRule = Number(row.dataset.id);
+            render();
+          });
+        });
+      }
+      if (state.page === "revenue") {
+        document.querySelectorAll(".revenue-view").forEach(button => {
+          button.addEventListener("click", () => {
+            state.selectedRevenue = button.dataset.view;
+            render();
+          });
+        });
+      }
+      if (state.page === "audit") {
+        const refreshAudit = () => {
+          const entity = document.getElementById("audit-entity").value;
+          const user = document.getElementById("audit-user").value;
+          const action = document.getElementById("audit-action").value;
+          const rows = previewData.audit.filter(item =>
+            (entity === "ALL" || item.entity === entity)
+            && (user === "ALL" || item.user === user)
+            && (action === "ALL" || item.action === action)
+          );
+          document.getElementById("audit-table").innerHTML = auditTable(rows);
+        };
+        document.getElementById("audit-table").innerHTML = auditTable(previewData.audit);
+        ["audit-entity", "audit-user", "audit-action"].forEach(id => {
+          document.getElementById(id).addEventListener("input", refreshAudit);
+        });
+        document.getElementById("audit-apply").addEventListener("click", refreshAudit);
+      }
+    }
+
+    function bindTradeRows() {
+      document.querySelectorAll(".trade-row").forEach(row => {
+        row.classList.toggle("selected", row.dataset.id === state.selectedTrade);
+        row.addEventListener("click", () => {
+          state.selectedTrade = row.dataset.id;
+          document.getElementById("trade-detail").innerHTML = tradeDetail();
+          document.querySelectorAll(".trade-row").forEach(item => item.classList.remove("selected"));
+          row.classList.add("selected");
+        });
+      });
+    }
+
+    roleSelect.addEventListener("input", () => {
+      state.role = roleSelect.value;
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
+

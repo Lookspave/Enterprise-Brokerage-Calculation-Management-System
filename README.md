@@ -11,6 +11,7 @@ A production-oriented portfolio scaffold for brokerage calculation, rule managem
 - Validation services for duplicate, reference, currency, date, quantity, and price checks.
 - SQLAlchemy models that run locally on SQLite and can point to Oracle with an Oracle SQLAlchemy URL.
 - Oracle DDL and PL/SQL examples for production-style database design.
+- Oracle APEX reporting views, chart queries, LOV queries, and dashboard blueprint.
 - PySpark batch job skeleton for high-volume trade processing.
 - Airflow DAG skeleton for daily load, validate, calculate, report, and notify orchestration.
 - Docker and environment templates.
@@ -180,6 +181,36 @@ curl "http://127.0.0.1:8000/audit?entity_type=BROKERAGE_RESULT&limit=25" `
 ```
 
 Audit filters include `entity_type`, `entity_id`, `action`, `user_id`, `date_from`, `date_to`, `limit`, and `offset`.
+
+## Oracle APEX Dashboard
+
+APEX supporting assets live in `apex/`.
+
+Install the reporting views after the Oracle schema:
+
+```sql
+@apex/reporting_views.sql
+```
+
+Main APEX assets:
+
+```text
+apex/reporting_views.sql
+apex/chart_queries.sql
+apex/lov_queries.sql
+apex/security_authorization.sql
+apex/page_blueprint.md
+```
+
+The page blueprint covers dashboard KPIs, trade search, import monitoring, rule management, revenue reports, rejection analysis, audit review, and admin pages.
+
+For a local interactive preview without an Oracle APEX workspace, open:
+
+```text
+apex/preview.html
+```
+
+The preview includes side navigation, a role selector, dashboard KPIs, trade search with row drill-down, import monitoring, rule details, revenue analysis, rejection review, audit filtering, and an admin role matrix.
 
 ## Oracle Configuration
 
