@@ -219,6 +219,38 @@ class ApiSmokeTests(unittest.TestCase):
             self.assertEqual(failed_import_response.status_code, 200)
             self.assertEqual(failed_import_response.json()["status"], "VALIDATED")
 
+            forbidden_audit_response = client.get("/audit", headers=finance_headers)
+            self.assertEqual(forbidden_audit_response.status_code, 403)
+
+            audit_response = client.get(
+                "/audit?entity_type=BROKERAGE_RESULT&limit=10",
+                headers=admin_headers,
+            )
+            self.assertEqual(audit_response.status_code, 200)
+            audit_page = audit_response.json()
+            self.assertEqual(audit_page["total"], 2)
+            self.assertEqual(audit_page["items"][0]["entity_type"], "BROKERAGE_RESULT")
+            self.assertEqual(audit_page["items"][0]["action"], "CALCULATE")
+
+            dashboard_response = client.get(
+                "/dashboard?business_date=2026-07-11",
+                headers=finance_headers,
+            )
+            self.assertEqual(dashboard_response.status_code, 200)
+            dashboard = dashboard_response.json()
+            self.assertEqual(dashboard["today_trades"], 3)
+            self.assertEqual(dashboard["today_brokerage"], "88.93")
+            self.assertEqual(dashboard["pending_trades"], 0)
+            self.assertEqual(dashboard["validated_trades"], 1)
+            self.assertEqual(dashboard["calculated_trades"], 2)
+            self.assertEqual(dashboard["rejected_trades"], 0)
+            self.assertEqual(dashboard["imports_today"], 1)
+            self.assertEqual(dashboard["rejected_import_rows_today"], 1)
+            self.assertEqual(dashboard["active_rules"], 1)
+            self.assertEqual(dashboard["active_clients"], 1)
+            self.assertEqual(dashboard["active_products"], 1)
+            self.assertGreaterEqual(len(dashboard["recent_audit"]), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

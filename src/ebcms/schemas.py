@@ -190,3 +190,39 @@ class TradeImportRejectionRead(BaseModel):
     reason: str
     raw_payload: dict[str, object]
     created_at: datetime
+
+
+class AuditLogRead(BaseModel):
+    audit_id: int
+    entity_type: str
+    entity_id: str
+    action: str
+    old_value: str | None = None
+    new_value: str | None = None
+    user_id: str
+    change_reason: str | None = None
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AuditLogPage(BaseModel):
+    total: int
+    limit: int
+    offset: int
+    items: list[AuditLogRead]
+
+
+class DashboardSummary(BaseModel):
+    business_date: date
+    today_trades: int
+    today_brokerage: Decimal
+    pending_trades: int
+    validated_trades: int
+    calculated_trades: int
+    rejected_trades: int
+    imports_today: int
+    rejected_import_rows_today: int
+    active_rules: int
+    active_clients: int
+    active_products: int
+    recent_audit: list[AuditLogRead]

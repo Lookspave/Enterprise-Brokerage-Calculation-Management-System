@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from ebcms.api.routes import auth, clients, reports, rules, trades
+from ebcms.api.routes import auth, clients, operations, reports, rules, trades
 from ebcms.config import get_settings
 from ebcms.database import init_db
 
@@ -8,7 +8,7 @@ settings = get_settings()
 
 app = FastAPI(
     title=settings.app_name,
-    version="0.3.0",
+    version="0.4.0",
     description="Authenticated brokerage calculation, trade ingestion, rule management, audit, and reporting APIs.",
 )
 
@@ -25,6 +25,7 @@ def health() -> dict[str, str]:
 
 app.include_router(auth.router)
 app.include_router(clients.router)
+app.include_router(operations.router)
 app.include_router(rules.router)
 app.include_router(trades.router)
 app.include_router(reports.router)

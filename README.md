@@ -53,6 +53,8 @@ POST /rules
 PUT  /rules/{rule_id}
 DELETE /rules/{rule_id}
 GET  /reports
+GET  /audit
+GET  /dashboard
 ```
 
 ## Local Demo Flow
@@ -157,6 +159,26 @@ You can also calculate by date range or all currently validated trades:
   "calculated_by": "batch-demo"
 }
 ```
+
+## Operations Dashboard And Audit
+
+Dashboard summary:
+
+```powershell
+curl http://127.0.0.1:8000/dashboard?business_date=2026-07-11 `
+  -H "Authorization: Bearer $token"
+```
+
+The dashboard includes trade counts, brokerage totals, import status, rejected import rows, active rules/reference data, and recent audit entries.
+
+Audit trail:
+
+```powershell
+curl "http://127.0.0.1:8000/audit?entity_type=BROKERAGE_RESULT&limit=25" `
+  -H "Authorization: Bearer $token"
+```
+
+Audit filters include `entity_type`, `entity_id`, `action`, `user_id`, `date_from`, `date_to`, `limit`, and `offset`.
 
 ## Oracle Configuration
 

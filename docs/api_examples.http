@@ -103,3 +103,11 @@ Content-Type: text/csv
 trade_id,client_id,product_id,quantity,price,currency,exchange,trade_side,trade_date
 T-101,C-100,P-EQ,100,250.00,INR,NSE,BUY,2026-07-11
 --boundary--
+
+### Dashboard summary
+GET http://127.0.0.1:8000/dashboard?business_date=2026-07-11
+Authorization: Bearer {{token}}
+
+### Audit trail
+GET http://127.0.0.1:8000/audit?entity_type=BROKERAGE_RESULT&limit=25
+Authorization: Bearer {{token}}
